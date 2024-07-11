@@ -18,7 +18,6 @@ const ENV_HOARD_CONFIG_PATH: &str = "HOARD_CONFIG";
 pub struct HoardConfig {
     pub version: String,
     pub default_namespace: String,
-    pub config_home_path: Option<PathBuf>,
     pub trove_path: Option<PathBuf>,
     pub query_prefix: String,
     // Color settings
@@ -42,7 +41,6 @@ impl Default for HoardConfig {
         Self {
             version: VERSION.to_string(),
             default_namespace: "default".to_string(),
-            config_home_path: None,
             trove_path: None,
             query_prefix: "  >".to_string(),
             primary_color: Some(Self::default_colors(0)),
@@ -62,7 +60,6 @@ impl Default for HoardConfig {
 impl HoardConfig {
     pub fn new(hoard_home_path: &Path) -> Self {
         Self {
-            config_home_path: Some(hoard_home_path.to_path_buf()),
             trove_path: Some(hoard_home_path.join(DEFAULT_HOARD_FILE)),
             ..Self::default()
         }
@@ -298,8 +295,8 @@ fn save_config(config_to_save: &HoardConfig, config_path: &Path) -> Result<(), E
     Ok(())
 }
 
-pub fn save_hoard_config_file(config_to_save: &HoardConfig, base_path: &Path) -> Result<(), Error> {
-    let config_dir = base_path.join(DEFAULT_HOARD_CONFIG_FILE);
+pub fn save_hoard_config_file(config_to_save: &HoardConfig) -> Result<(), Error> {
+    let config_dir = get_hoard_config_path()?;
 
     save_config(config_to_save, &config_dir)
 }
@@ -374,10 +371,6 @@ mod test_config {
 
         env::set_var("HOARD_CONFIG", &tmp_path);
         let x = load_or_build_config().unwrap();
-        assert_eq!(
-            x.config_home_path.as_ref().unwrap(),
-            tmp_path.clone().parent().unwrap()
-        );
         let f = File::open(tmp_path).ok().unwrap();
         let parsed_config = serde_yaml::from_reader::<_, HoardConfig>(f).ok().unwrap();
         assert_eq!(parsed_config, x);
@@ -386,7 +379,6 @@ mod test_config {
 
         env::set_var("HOARD_CONFIG", &tmp_path);
         let x = load_or_build_config().unwrap();
-        assert_eq!(x.config_home_path.as_ref().unwrap(), tmp_path.as_path());
         let f = File::open(tmp_path.join(DEFAULT_HOARD_CONFIG_FILE))
             .ok()
             .unwrap();
